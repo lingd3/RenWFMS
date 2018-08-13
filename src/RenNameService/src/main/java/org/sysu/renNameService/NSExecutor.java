@@ -120,9 +120,37 @@ public class NSExecutor extends Observable {
                             ArrayList<RenProcessEntity> processByRenList = NameSpacingService.GetProcessByRenId((String) args.get("renid"));
                             retStr = SerializationUtil.JsonSerialization(processByRenList, "");
                             break;
+                        case "getProcessByDomain":
+                            ArrayList<RenProcessEntity> processByDomainList = NameSpacingService.GetProcessByDomain((String) args.get("domain"));
+                            retStr = SerializationUtil.JsonSerialization(processByDomainList, "");
+                            break;
+                        case "getProcessByPid":
+                            RenProcessEntity processByPid = NameSpacingService.GetProcessByPid((String) args.get("pid"));
+                            retStr = SerializationUtil.JsonSerialization(processByPid, "");
+                            break;
                         case "getProcessBOList":
                             ArrayList<Object> processBOList = NameSpacingService.GetProcessBOList((String) args.get("pid"));
                             retStr = SerializationUtil.JsonSerialization(processBOList, "");
+                            break;
+                        case "getRuntimeRecord":
+                            RenRuntimerecordEntity RTC = NameSpacingService.GetRuntimeRecord((String) args.get("rtid"));
+                            retStr = SerializationUtil.JsonSerialization(RTC, "");
+                            break;
+                        case "getAllRuntimeRecord":
+                            ArrayList<RenRuntimerecordEntity> allRTCList = NameSpacingService.GetAllRuntimeRecord((String) args.get("activeOnly"));
+                            retStr = SerializationUtil.JsonSerialization(allRTCList, "");
+                            break;
+                        case "getRuntimeRecordByDomain":
+                            ArrayList<RenRuntimerecordEntity> domainRTCList = NameSpacingService.GetRuntimeRecordByDomain((String) args.get("domain"), (String) args.get("activeOnly"));
+                            retStr = SerializationUtil.JsonSerialization(domainRTCList, "");
+                            break;
+                        case "getRuntimeRecordByLauncher":
+                            ArrayList<RenRuntimerecordEntity> launcherRTCList = NameSpacingService.GetRuntimeRecordByLauncher((String) args.get("launcher"), (String) args.get("activeOnly"));
+                            retStr = SerializationUtil.JsonSerialization(launcherRTCList, "");
+                            break;
+                        case "getRuntimeLogByRTID":
+                            ArrayList<RenLogEntity> RTCLogList = NameSpacingService.GetRuntimeLog((String) args.get("rtid"));
+                            retStr = SerializationUtil.JsonSerialization(RTCLogList, "");
                             break;
                         case "containProcess":
                             boolean containProcessFlag = NameSpacingService.ContainProcess((String) args.get("renid"), (String) args.get("processName"));
@@ -142,6 +170,9 @@ public class NSExecutor extends Observable {
                         case "checkFinish":
                             retStr = NameSpacingService.CheckFinish((String) args.get("rtid"));
                             break;
+                        case "transshipGetSpanTree":
+                            retStr = (String) NameSpacingService.TransshipGetSpanTree((String) args.get("rtid"));
+                            break;
                         case "transshipCallback":
                             retStr = NameSpacingService.TransshipCallback(args);
                             break;
@@ -153,6 +184,15 @@ public class NSExecutor extends Observable {
                             break;
                         case "transshipGetAll":
                             retStr = (String) NameSpacingService.TransshipGetAll((String) args.get("rtid"));
+                            break;
+                        case "transshipGetAllWorkitemsForDomain":
+                            retStr = (String) NameSpacingService.TransshipGetAllWorkitemsForDomain((String) args.get("domain"));
+                            break;
+                        case "transshipGetAllActiveForParticipant":
+                            retStr = (String) NameSpacingService.TransshipGetAllActiveForParticipant((String) args.get("workerId"));
+                            break;
+                        case "transshipGetWorkitem":
+                            retStr = (String) NameSpacingService.TransshipGetWorkitem((String) args.get("wid"));
                             break;
                     }
                     // prepare execution result
@@ -168,20 +208,20 @@ public class NSExecutor extends Observable {
                     break;
             }
             // write success info to db
-            Session session = HibernateUtil.GetLocalSession();
-            Transaction dbTrans = session.beginTransaction();
-            try {
-                context.setFinishTimestamp(TimestampUtil.GetCurrentTimestamp());
-                session.update(context);
-                dbTrans.commit();
-            }
-            catch (Exception dbEx) {
-                dbTrans.rollback();
-                throw dbEx;
-            }
-            finally {
-                HibernateUtil.CloseLocalSession();
-            }
+//            Session session = HibernateUtil.GetLocalSession();
+//            Transaction dbTrans = session.beginTransaction();
+//            try {
+//                context.setFinishTimestamp(TimestampUtil.GetCurrentTimestamp());
+//                session.update(context);
+//                dbTrans.commit();
+//            }
+//            catch (Exception dbEx) {
+//                dbTrans.rollback();
+//                throw dbEx;
+//            }
+//            finally {
+//                HibernateUtil.CloseLocalSession();
+//            }
             return retStr;
         }
         catch (Exception ex) {

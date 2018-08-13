@@ -1,0 +1,13 @@
+Login	http://localhost:10234/auth/connect
+CreateProcess	http://localhost:10234/ns/createProcess
+SubmitProcess	http://localhost:10234/ns/submitProcess
+UploadMapping	http://localhost:10234/rolemap/register
+UploadBO	http://localhost:10234/ns/uploadBO
+LoadParticipant	http://localhost:10234/rolemap/loadParticipant
+StartProcess	http://localhost:10234/ns/startProcess
+WorkitemAccept	http://localhost:10234/ns/workitem/accept
+WorkitemStart	http://localhost:10234/ns/workitem/start
+WorkitemComplete	http://localhost:10234/ns/workitem/complete
+Callback	http://localhost:10234/ns/callback
+GetAllWorkitem	http://localhost:10234/ns/workitem/getAll
+CheckFinish	http://localhost:10234/ns/checkFinish

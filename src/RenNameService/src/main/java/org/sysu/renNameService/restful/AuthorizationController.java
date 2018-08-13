@@ -5,6 +5,7 @@
 package org.sysu.renNameService.restful;
 
 import org.springframework.web.bind.annotation.*;
+import org.sysu.renNameService.GlobalContext;
 import org.sysu.renNameService.authorization.AuthTokenManager;
 import org.sysu.renNameService.authorization.AuthorizationService;
 import org.sysu.renCommon.dto.ReturnModel;
@@ -32,7 +33,7 @@ public class AuthorizationController {
      * @param password password (required)
      * @return response package
      */
-    @PostMapping(value = "/connect", produces = {"application/json", "application/xml"})
+    @PostMapping(value = "/connect", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel Connect(@RequestParam(value="username", required = false)String username,
@@ -61,7 +62,7 @@ public class AuthorizationController {
      * @param token auth token (required)
      * @return response package
      */
-    @PostMapping(value = "/disconnect", produces = {"application/json", "application/xml"})
+    @PostMapping(value = "/disconnect", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel Disconnect(@RequestParam(value="token", required = false)String token) {
@@ -88,7 +89,7 @@ public class AuthorizationController {
      * @param token auth token (required)
      * @return response package
      */
-    @PostMapping(value = "/check", produces = {"application/json", "application/xml"})
+    @PostMapping(value = "/check", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel Check(@RequestParam(value="token", required = false)String token) {
@@ -119,7 +120,7 @@ public class AuthorizationController {
      * @param corgan COrgan gateway URL
      * @return response package
      */
-    @PostMapping(value = "/domain/add", produces = {"application/json", "application/xml"})
+    @PostMapping(value = "/domain/add", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel AddDomain(@RequestParam(value="token", required = false)String token,
@@ -160,7 +161,7 @@ public class AuthorizationController {
      * @param name domain unique name (required)
      * @return response package
      */
-    @PostMapping(value = "/domain/remove", produces = {"application/json", "application/xml"})
+    @PostMapping(value = "/domain/remove", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel RemoveDomain(@RequestParam(value="token", required = false)String token,
@@ -197,7 +198,7 @@ public class AuthorizationController {
      * @param corgan new COrgan gateway URL
      * @return response package
      */
-    @PostMapping(value = "/domain/update", produces = {"application/json", "application/xml"})
+    @PostMapping(value = "/domain/update", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel UpdateDomain(@RequestParam(value="token", required = false)String token,
@@ -231,7 +232,7 @@ public class AuthorizationController {
                 if (tokenLevel < 2) {  // change user deletion status is WFMS ADMIN ONLY
                     return ReturnModelHelper.UnauthorizedResponse(token);
                 }
-                updateArgs.put("state", status);
+                updateArgs.put("status", status);
             }
             if (corgan != null) {
                 updateArgs.put("corgan", corgan);
@@ -256,7 +257,7 @@ public class AuthorizationController {
      * @param name domain unique name
      * @return response package
      */
-    @PostMapping(value = "/domain/contain", produces = {"application/json", "application/xml"})
+    @PostMapping(value = "/domain/contain", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel ContainDomain(@RequestParam(value="token", required = false)String token,
@@ -290,7 +291,7 @@ public class AuthorizationController {
      * @param name domain unique name
      * @return response package
      */
-    @PostMapping(value = "/domain/get", produces = {"application/json", "application/xml"})
+    @PostMapping(value = "/domain/get", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel GetDomain(@RequestParam(value="token", required = false)String token,
@@ -323,7 +324,7 @@ public class AuthorizationController {
      * @param token auth token
      * @return response package
      */
-    @PostMapping(value = "/domain/getall", produces = {"application/json", "application/xml"})
+    @PostMapping(value = "/domain/getall", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel GetAllDomain(@RequestParam(value="token", required = false)String token) {
@@ -358,14 +359,15 @@ public class AuthorizationController {
      * @param domain domain name (required)
      * @return response package
      */
-    @PostMapping(value = "/user/add", produces = {"application/json", "application/xml"})
+    @PostMapping(value = "/user/add", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel AddAuthorization(@RequestParam(value="token", required = false)String token,
                                         @RequestParam(value="username", required = false)String username,
                                         @RequestParam(value="password", required = false)String password,
                                         @RequestParam(value="level", required = false)String level,
-                                        @RequestParam(value="domain", required = false)String domain) {
+                                        @RequestParam(value="domain", required = false)String domain,
+                                        @RequestParam(value="gid", required = false)String gid) {
         ReturnModel rnModel = new ReturnModel();
         try {
             // miss params
@@ -379,13 +381,14 @@ public class AuthorizationController {
                 return ReturnModelHelper.MissingParametersResponse(missingParams);
             }
             // token check
-            if (AuthorizationService.CheckValidLevel(token) < 1 &&
-                    AuthTokenManager.GetDomain(token).equals(domain)) {
+            if ((AuthorizationService.CheckValidLevel(token) < 1 &&
+                    AuthTokenManager.GetDomain(token).equals(domain)) &&
+                    !token.equals(GlobalContext.INTERNAL_TOKEN)) {
                 return ReturnModelHelper.UnauthorizedResponse(token);
             }
             // logic
             assert level != null;
-            String jsonifyResult = AuthorizationService.AddAuthUser(username, password, Integer.valueOf(level), domain);
+            String jsonifyResult = AuthorizationService.AddAuthUser(username, password, Integer.valueOf(level), domain, gid);
             // return
             ReturnModelHelper.StandardResponse(rnModel, StatusCode.OK, jsonifyResult);
         } catch (Exception e) {
@@ -401,7 +404,7 @@ public class AuthorizationController {
      * @param domain domain name (required)
      * @return response package
      */
-    @PostMapping(value = "/user/remove", produces = {"application/json", "application/xml"})
+    @PostMapping(value = "/user/remove", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel RemoveAuthorization(@RequestParam(value="token", required = false)String token,
@@ -418,8 +421,9 @@ public class AuthorizationController {
                 return ReturnModelHelper.MissingParametersResponse(missingParams);
             }
             // token check
-            if (AuthorizationService.CheckValidLevel(token) < 1 &&
-                    AuthTokenManager.GetDomain(token).equals(domain)) {
+            if ((AuthorizationService.CheckValidLevel(token) < 1 &&
+                    AuthTokenManager.GetDomain(token).equals(domain)) &&
+                    !token.equals(GlobalContext.INTERNAL_TOKEN)) {
                 return ReturnModelHelper.UnauthorizedResponse(token);
             }
             // logic
@@ -442,7 +446,7 @@ public class AuthorizationController {
      * @param status new deletion status
      * @return response package
      */
-    @PostMapping(value = "/user/update", produces = {"application/json", "application/xml"})
+    @PostMapping(value = "/user/update", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel UpdateAuthorization(@RequestParam(value="token", required = false)String token,
@@ -450,7 +454,8 @@ public class AuthorizationController {
                                            @RequestParam(value="domain", required = false)String domain,
                                            @RequestParam(value="password", required = false)String password,
                                            @RequestParam(value="level", required = false)String level,
-                                           @RequestParam(value="status", required = false)String status) {
+                                           @RequestParam(value="status", required = false)String status,
+                                           @RequestParam(value="gid", required = false)String gid) {
         ReturnModel rnModel = new ReturnModel();
         try {
             // miss params
@@ -463,13 +468,17 @@ public class AuthorizationController {
             }
             // check token
             int tokenLevel = AuthorizationService.CheckValidLevel(token);
-            if (tokenLevel == -1 || !AuthTokenManager.GetDomain(token).equals(domain)) {
+            if (tokenLevel == -1 || token.equals(GlobalContext.INTERNAL_TOKEN) &&
+                    !token.equals(GlobalContext.INTERNAL_TOKEN)) {
                 return ReturnModelHelper.UnauthorizedResponse(token);
             }
             // logic
             HashMap<String, String> updateArgs = new HashMap<>();
             if (password != null) {
                 updateArgs.put("password", password);
+            }
+            if (gid != null) {
+                updateArgs.put("gid", gid);
             }
             if (level != null) {
                 if (tokenLevel < 1) {  // change user level is ADMIN ONLY
@@ -481,7 +490,7 @@ public class AuthorizationController {
                 if (tokenLevel < 1) {  // change user deletion state is ADMIN ONLY
                     return ReturnModelHelper.UnauthorizedResponse(token);
                 }
-                updateArgs.put("state", status);
+                updateArgs.put("status", status);
             }
             // return
             if (updateArgs.size() == 0) {
@@ -503,7 +512,7 @@ public class AuthorizationController {
      * @param username user unique name
      * @return response package
      */
-    @PostMapping(value = "/user/contain", produces = {"application/json", "application/xml"})
+    @PostMapping(value = "/user/contain", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel ContainAuthorization(@RequestParam(value="token", required = false)String token,
@@ -520,8 +529,9 @@ public class AuthorizationController {
                 return ReturnModelHelper.MissingParametersResponse(missingParams);
             }
             // token check
-            if (AuthorizationService.CheckValidLevel(token) < 0 &&
-                    AuthTokenManager.GetDomain(token).equals(domain)) {
+            if ((AuthorizationService.CheckValidLevel(token) < 0 &&
+                    AuthTokenManager.GetDomain(token).equals(domain)) &&
+                    !token.equals(GlobalContext.INTERNAL_TOKEN)) {
                 return ReturnModelHelper.UnauthorizedResponse(token);
             }
             // logic
@@ -540,7 +550,7 @@ public class AuthorizationController {
      * @param username user unique name
      * @return response package
      */
-    @PostMapping(value = "/user/get", produces = {"application/json", "application/xml"})
+    @PostMapping(value = "/user/get", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel GetAuthorization(@RequestParam(value="token", required = false)String token,
@@ -557,8 +567,9 @@ public class AuthorizationController {
                 return ReturnModelHelper.MissingParametersResponse(missingParams);
             }
             // token check
-            if (AuthorizationService.CheckValidLevel(token) < 0 &&
-                    AuthTokenManager.GetDomain(token).equals(domain)) {
+            if ((AuthorizationService.CheckValidLevel(token) < 0 &&
+                    AuthTokenManager.GetDomain(token).equals(domain)) &&
+                    !token.equals(GlobalContext.INTERNAL_TOKEN)) {
                 return ReturnModelHelper.UnauthorizedResponse(token);
             }
             // logic
@@ -576,7 +587,7 @@ public class AuthorizationController {
      * @param token auth token
      * @return response package
      */
-    @PostMapping(value = "/user/getall", produces = {"application/json", "application/xml"})
+    @PostMapping(value = "/user/getall", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel GetAllAuthorization(@RequestParam(value="token", required = false)String token,
@@ -591,8 +602,9 @@ public class AuthorizationController {
                 return ReturnModelHelper.MissingParametersResponse(missingParams);
             }
             // token check
-            if (AuthorizationService.CheckValidLevel(token) < 0 &&
-                    AuthTokenManager.GetDomain(token).equals(domain)) {
+            if ((AuthorizationService.CheckValidLevel(token) < 0 &&
+                    AuthTokenManager.GetDomain(token).equals(domain)) &&
+                    !token.equals(GlobalContext.INTERNAL_TOKEN)) {
                 return ReturnModelHelper.UnauthorizedResponse(token);
             }
             // logic

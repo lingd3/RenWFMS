@@ -5,18 +5,18 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.domain.EntityScan;
 import org.springframework.boot.context.embedded.ConfigurableEmbeddedServletContainer;
 import org.springframework.boot.context.embedded.EmbeddedServletContainerCustomizer;
-import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.orm.jpa.vendor.HibernateJpaSessionFactoryBean;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
+import org.sysu.workflow.utility.ResumeUtil;
 
 @SpringBootApplication
-@EnableDiscoveryClient
 @EnableTransactionManagement
-@EntityScan(basePackages = "org.sysu.workflow.restful.entity")
+@EntityScan(basePackages = "org.sysu.workflow.entity")
 public class BOEngineApplication implements EmbeddedServletContainerCustomizer {
     public static void main(String[] args) {
         SpringApplication.run(BOEngineApplication.class, args);
+        ResumeUtil.resumeBOEngine();
     }
 
     @Override

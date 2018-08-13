@@ -5,7 +5,10 @@
 package org.sysu.renNameService.restful;
 
 import org.springframework.web.bind.annotation.*;
+import org.sysu.renCommon.utility.AuthDomainHelper;
+import org.sysu.renNameService.GlobalContext;
 import org.sysu.renNameService.NSScheduler;
+import org.sysu.renNameService.authorization.AuthTokenManager;
 import org.sysu.renNameService.authorization.AuthorizationService;
 import org.sysu.renCommon.dto.ReturnModel;
 import org.sysu.renCommon.dto.StatusCode;
@@ -16,7 +19,9 @@ import org.sysu.renNameService.transaction.TransactionType;
 import javax.transaction.Transactional;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Author: Rinkako
@@ -38,7 +43,7 @@ public class NameSpacingController {
      * @param mainbo main bo name (required)
      * @return response package
      */
-    @RequestMapping(value = "/createProcess", produces = {"application/json", "application/xml"})
+    @RequestMapping(value = "/createProcess", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel CreateProcess(@RequestParam(value = "token", required = false) String token,
@@ -84,7 +89,7 @@ public class NameSpacingController {
      * @param content BO content (required)
      * @return response package
      */
-    @RequestMapping(value = "/uploadBO", produces = {"application/json", "application/xml"})
+    @RequestMapping(value = "/uploadBO", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel UploadBO(@RequestParam(value = "token", required = false) String token,
@@ -128,7 +133,7 @@ public class NameSpacingController {
      * @param pid   process id (required)
      * @return response package
      */
-    @RequestMapping(value = "/getProcessBOList", produces = {"application/json", "application/xml"})
+    @RequestMapping(value = "/getProcessBOList", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel GetProcessBOList(@RequestParam(value = "token", required = false) String token,
@@ -166,7 +171,7 @@ public class NameSpacingController {
      * @param renid ren user id (required)
      * @return response package
      */
-    @RequestMapping(value = "/getProcessByRenId", produces = {"application/json", "application/xml"})
+    @RequestMapping(value = "/getProcessByRenId", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel GetProcessByRenId(@RequestParam(value = "token", required = false) String token,
@@ -198,6 +203,82 @@ public class NameSpacingController {
     }
 
     /**
+     * Get process list of a specific domain.
+     *
+     * @param token  auth token
+     * @param domain domain name (required)
+     * @return response package
+     */
+    @RequestMapping(value = "/getProcessByDomain", produces = {"application/json"})
+    @ResponseBody
+    @Transactional
+    public ReturnModel GetProcessByDomain(@RequestParam(value = "token", required = false) String token,
+                                          @RequestParam(value = "domain", required = false) String domain) {
+        ReturnModel rnModel = new ReturnModel();
+        try {
+            // miss params
+            List<String> missingParams = new ArrayList<>();
+            if (token == null) missingParams.add("token");
+            if (domain == null) missingParams.add("domain");
+            if (missingParams.size() > 0) {
+                return ReturnModelHelper.MissingParametersResponse(missingParams);
+            }
+            // token check
+            if (!AuthorizationService.CheckValid(token)) {
+                return ReturnModelHelper.UnauthorizedResponse(token);
+            }
+            // logic
+            HashMap<String, String> args = new HashMap<>();
+            args.put("domain", domain);
+            NameServiceTransaction t = TransactionCreator.Create(TransactionType.Namespacing, "getProcessByDomain", args);
+            String jsonifyResult = (String) NameSpacingController.scheduler.Schedule(t);
+            // return
+            ReturnModelHelper.StandardResponse(rnModel, StatusCode.OK, jsonifyResult);
+        } catch (Exception e) {
+            ReturnModelHelper.ExceptionResponse(rnModel, e.getClass().getName());
+        }
+        return rnModel;
+    }
+
+    /**
+     * Get process list of a specific domain.
+     *
+     * @param token auth token
+     * @param pid   process global id (required)
+     * @return response package
+     */
+    @RequestMapping(value = "/getProcessByPid", produces = {"application/json"})
+    @ResponseBody
+    @Transactional
+    public ReturnModel GetProcessByPid(@RequestParam(value = "token", required = false) String token,
+                                       @RequestParam(value = "pid", required = false) String pid) {
+        ReturnModel rnModel = new ReturnModel();
+        try {
+            // miss params
+            List<String> missingParams = new ArrayList<>();
+            if (token == null) missingParams.add("token");
+            if (pid == null) missingParams.add("pid");
+            if (missingParams.size() > 0) {
+                return ReturnModelHelper.MissingParametersResponse(missingParams);
+            }
+            // token check
+            if (!AuthorizationService.CheckValid(token)) {
+                return ReturnModelHelper.UnauthorizedResponse(token);
+            }
+            // logic
+            HashMap<String, String> args = new HashMap<>();
+            args.put("pid", pid);
+            NameServiceTransaction t = TransactionCreator.Create(TransactionType.Namespacing, "getProcessByPid", args);
+            String jsonifyResult = (String) NameSpacingController.scheduler.Schedule(t);
+            // return
+            ReturnModelHelper.StandardResponse(rnModel, StatusCode.OK, jsonifyResult);
+        } catch (Exception e) {
+            ReturnModelHelper.ExceptionResponse(rnModel, e.getClass().getName());
+        }
+        return rnModel;
+    }
+
+    /**
      * Check if a ren user already have a process named this.
      *
      * @param token       auth token
@@ -205,7 +286,7 @@ public class NameSpacingController {
      * @param processName process unique name to be checked (required)
      * @return response package
      */
-    @RequestMapping(value = "/containProcess", produces = {"application/json", "application/xml"})
+    @RequestMapping(value = "/containProcess", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel ContainProcess(@RequestParam(value = "token", required = false) String token,
@@ -247,7 +328,7 @@ public class NameSpacingController {
      * @param rtid  process rtid
      * @return response package
      */
-    @RequestMapping(value = "/getBO", produces = {"application/json", "application/xml"})
+    @RequestMapping(value = "/getBO", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel GetBO(@RequestParam(value = "token", required = false) String token,
@@ -291,7 +372,7 @@ public class NameSpacingController {
      * @param binding     resource binding data
      * @return response package
      */
-    @RequestMapping(value = "/submitProcess", produces = {"application/json", "application/xml"})
+    @RequestMapping(value = "/submitProcess", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel SubmitProcess(@RequestParam(value = "token", required = false) String token,
@@ -340,6 +421,8 @@ public class NameSpacingController {
         } catch (Exception e) {
             ReturnModelHelper.ExceptionResponse(rnModel, e.getClass().getName());
         }
+        String data = rnModel.getReturnElement().getData();
+        rtids.add(data.substring(0, data.length()-1));
         return rnModel;
     }
 
@@ -350,7 +433,7 @@ public class NameSpacingController {
      * @param rtid  process rtid (required)
      * @return response package
      */
-    @RequestMapping(value = "/startProcess", produces = {"application/json", "application/xml"})
+    @RequestMapping(value = "/startProcess", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel StartProcess(@RequestParam(value = "token", required = false) String token,
@@ -388,7 +471,7 @@ public class NameSpacingController {
      * @param rtid      process rtid (required)
      * @return response package
      */
-    @RequestMapping(value = "/checkFinish", produces = {"application/json", "application/xml"})
+    @RequestMapping(value = "/checkFinish", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel CheckFinish(@RequestParam(value = "signature", required = false) String signature,
@@ -416,6 +499,252 @@ public class NameSpacingController {
         } catch (Exception e) {
             ReturnModelHelper.ExceptionResponse(rnModel, e.getClass().getName());
         }
+        if (rtids.contains(rtid)) {
+			rtids.remove(rtid);
+        }
+        return rnModel;
+    }
+
+    /**
+     * Get runtime record by its global id.
+     *
+     * @param token auth token
+     * @return response package
+     */
+    @RequestMapping(value = "/getRuntimeRecord", produces = {"application/json"})
+    @ResponseBody
+    @Transactional
+    public ReturnModel GetRuntimeRecord(@RequestParam(value = "token", required = false) String token,
+                                        @RequestParam(value = "rtid", required = false) String rtid) {
+        ReturnModel rnModel = new ReturnModel();
+        try {
+            // miss params
+            List<String> missingParams = new ArrayList<>();
+            if (token == null) missingParams.add("token");
+            if (rtid == null) missingParams.add("rtid");
+            if (missingParams.size() > 0) {
+                return ReturnModelHelper.MissingParametersResponse(missingParams);
+            }
+            // token check
+            if ((AuthorizationService.CheckValidLevel(token) < 0 &&
+                    AuthTokenManager.GetDomain(token).equals(AuthDomainHelper.GetDomainByRTID(rtid))) &&
+                    !token.equals(GlobalContext.INTERNAL_TOKEN)) {
+                return ReturnModelHelper.UnauthorizedResponse(token);
+            }
+            // logic
+            HashMap<String, String> args = new HashMap<>();
+            args.put("rtid", rtid);
+            NameServiceTransaction t = TransactionCreator.Create(TransactionType.Namespacing, "getRuntimeRecord", args);
+            String jsonifyResult = (String) NameSpacingController.scheduler.Schedule(t);
+            // return
+            ReturnModelHelper.StandardResponse(rnModel, StatusCode.OK, jsonifyResult);
+        } catch (Exception e) {
+            ReturnModelHelper.ExceptionResponse(rnModel, e.getClass().getName());
+        }
+        return rnModel;
+    }
+
+    /**
+     * Get all runtime records in a list.
+     *
+     * @param token auth token
+     * @return response package
+     */
+    @RequestMapping(value = "/getAllRuntimeRecord", produces = {"application/json"})
+    @ResponseBody
+    @Transactional
+    public ReturnModel GetAllRuntimeRecord(@RequestParam(value = "token", required = false) String token,
+                                           @RequestParam(value = "activeOnly", required = false) String activeOnly) {
+        ReturnModel rnModel = new ReturnModel();
+        try {
+            // miss params
+            List<String> missingParams = new ArrayList<>();
+            if (token == null) missingParams.add("token");
+            if (missingParams.size() > 0) {
+                return ReturnModelHelper.MissingParametersResponse(missingParams);
+            }
+            // token check, only super admin can use this function
+            if (!AuthTokenManager.GetDomain(token).equals("admin") && !token.equals(GlobalContext.INTERNAL_TOKEN)) {
+                return ReturnModelHelper.UnauthorizedResponse(token);
+            }
+            // logic
+            if (activeOnly == null || !activeOnly.equals("true")) {
+                activeOnly = "false";
+            }
+            HashMap<String, String> args = new HashMap<>();
+            args.put("activeOnly", activeOnly);
+            NameServiceTransaction t = TransactionCreator.Create(TransactionType.Namespacing, "getAllRuntimeRecord", args);
+            String jsonifyResult = (String) NameSpacingController.scheduler.Schedule(t);
+            // return
+            ReturnModelHelper.StandardResponse(rnModel, StatusCode.OK, jsonifyResult);
+        } catch (Exception e) {
+            ReturnModelHelper.ExceptionResponse(rnModel, e.getClass().getName());
+        }
+        return rnModel;
+    }
+
+    /**
+     * Get runtime record list of a specific domain.
+     *
+     * @param token auth token
+     * @return response package
+     */
+    @RequestMapping(value = "/getRuntimeRecordByDomain", produces = {"application/json"})
+    @ResponseBody
+    @Transactional
+    public ReturnModel GetRuntimeRecordByDomain(@RequestParam(value = "token", required = false) String token,
+                                                @RequestParam(value = "domain", required = false) String domain,
+                                                @RequestParam(value = "activeOnly", required = false) String activeOnly) {
+        ReturnModel rnModel = new ReturnModel();
+        try {
+            // miss params
+            List<String> missingParams = new ArrayList<>();
+            if (token == null) missingParams.add("token");
+            if (domain == null) missingParams.add("domain");
+            if (missingParams.size() > 0) {
+                return ReturnModelHelper.MissingParametersResponse(missingParams);
+            }
+            // token check
+            if ((AuthorizationService.CheckValidLevel(token) < 0 &&
+                    AuthTokenManager.GetDomain(token).equals(domain)) &&
+                    !token.equals(GlobalContext.INTERNAL_TOKEN)) {
+                return ReturnModelHelper.UnauthorizedResponse(token);
+            }
+            // logic
+            if (activeOnly == null || !activeOnly.equals("true")) {
+                activeOnly = "false";
+            }
+            HashMap<String, String> args = new HashMap<>();
+            args.put("domain", domain);
+            args.put("activeOnly", activeOnly);
+            NameServiceTransaction t = TransactionCreator.Create(TransactionType.Namespacing, "getRuntimeRecordByDomain", args);
+            String jsonifyResult = (String) NameSpacingController.scheduler.Schedule(t);
+            // return
+            ReturnModelHelper.StandardResponse(rnModel, StatusCode.OK, jsonifyResult);
+        } catch (Exception e) {
+            ReturnModelHelper.ExceptionResponse(rnModel, e.getClass().getName());
+        }
+        return rnModel;
+    }
+
+    /**
+     * Get runtime record list of a specific launcher.
+     *
+     * @param token auth token
+     * @return response package
+     */
+    @RequestMapping(value = "/getRuntimeRecordByLauncher", produces = {"application/json"})
+    @ResponseBody
+    @Transactional
+    public ReturnModel GetRuntimeRecordByLauncher(@RequestParam(value = "token", required = false) String token,
+                                                  @RequestParam(value = "launcher", required = false) String launcher,
+                                                  @RequestParam(value = "activeOnly", required = false) String activeOnly) {
+        ReturnModel rnModel = new ReturnModel();
+        try {
+            // miss params
+            List<String> missingParams = new ArrayList<>();
+            if (token == null) missingParams.add("token");
+            if (launcher == null) missingParams.add("launcher");
+            if (missingParams.size() > 0) {
+                return ReturnModelHelper.MissingParametersResponse(missingParams);
+            }
+            // token check
+            if ((AuthorizationService.CheckValidLevel(token) < 0 &&
+                    AuthTokenManager.GetDomain(token).equals(AuthDomainHelper.GetDomainByAuthName(launcher))) &&
+                    !token.equals(GlobalContext.INTERNAL_TOKEN)) {
+                return ReturnModelHelper.UnauthorizedResponse(token);
+            }
+            // logic
+            if (activeOnly == null || !activeOnly.equals("true")) {
+                activeOnly = "false";
+            }
+            HashMap<String, String> args = new HashMap<>();
+            args.put("launcher", launcher);
+            args.put("activeOnly", activeOnly);
+            NameServiceTransaction t = TransactionCreator.Create(TransactionType.Namespacing, "getRuntimeRecordByLauncher", args);
+            String jsonifyResult = (String) NameSpacingController.scheduler.Schedule(t);
+            // return
+            ReturnModelHelper.StandardResponse(rnModel, StatusCode.OK, jsonifyResult);
+        } catch (Exception e) {
+            ReturnModelHelper.ExceptionResponse(rnModel, e.getClass().getName());
+        }
+        return rnModel;
+    }
+
+    /**
+     * Get log list of a specific runtime record.
+     *
+     * @param token auth token
+     * @return response package
+     */
+    @RequestMapping(value = "/getRuntimeLogByRTID", produces = {"application/json"})
+    @ResponseBody
+    @Transactional
+    public ReturnModel GetRuntimeLogByRTID(@RequestParam(value = "token", required = false) String token,
+                                           @RequestParam(value = "rtid", required = false) String rtid) {
+        ReturnModel rnModel = new ReturnModel();
+        try {
+            // miss params
+            List<String> missingParams = new ArrayList<>();
+            if (token == null) missingParams.add("token");
+            if (rtid == null) missingParams.add("rtid");
+            if (missingParams.size() > 0) {
+                return ReturnModelHelper.MissingParametersResponse(missingParams);
+            }
+            // token check
+            if ((AuthorizationService.CheckValidLevel(token) < 0 &&
+                    AuthTokenManager.GetDomain(token).equals(AuthDomainHelper.GetDomainByRTID(rtid))) &&
+                    !token.equals(GlobalContext.INTERNAL_TOKEN)) {
+                return ReturnModelHelper.UnauthorizedResponse(token);
+            }
+            // logic
+            HashMap<String, String> args = new HashMap<>();
+            args.put("rtid", rtid);
+            NameServiceTransaction t = TransactionCreator.Create(TransactionType.Namespacing, "getRuntimeLogByRTID", args);
+            String jsonifyResult = (String) NameSpacingController.scheduler.Schedule(t);
+            // return
+            ReturnModelHelper.StandardResponse(rnModel, StatusCode.OK, jsonifyResult);
+        } catch (Exception e) {
+            ReturnModelHelper.ExceptionResponse(rnModel, e.getClass().getName());
+        }
+        return rnModel;
+    }
+
+    /**
+     * Transship request of sending a callback event to BO engine.
+     *
+     * @param signature domain signature key (required)
+     * @param rtid      process rtid (required)
+     * @return response package
+     */
+    @RequestMapping(value = "/getSpanTree", produces = {"application/json"})
+    @ResponseBody
+    @Transactional
+    public ReturnModel TransshipGetSpanTree(@RequestParam(value = "signature", required = false) String signature,
+                                            @RequestParam(value = "rtid", required = false) String rtid) {
+        ReturnModel rnModel = new ReturnModel();
+        try {
+            // miss params
+            List<String> missingParams = new ArrayList<>();
+            if (signature == null) missingParams.add("signature");
+            if (rtid == null) missingParams.add("rtid");
+            if (missingParams.size() > 0) {
+                return ReturnModelHelper.MissingParametersResponse(missingParams);
+            }
+            // check authorization
+            if (!signature.equals(GlobalContext.INTERNAL_TOKEN) && !AuthorizationService.CheckRTIDSignature(signature, rtid)) {
+                return ReturnModelHelper.UnauthorizedResponse(signature);
+            }
+            // logic
+            HashMap<String, String> args = new HashMap<>();
+            args.put("rtid", rtid);
+            NameServiceTransaction t = TransactionCreator.Create(TransactionType.Namespacing, "transshipGetSpanTree", args);
+            String jsonifyResult = (String) NameSpacingController.scheduler.ScheduleSync(t);
+            // return
+            ReturnModelHelper.StandardResponse(rnModel, StatusCode.OK, jsonifyResult);
+        } catch (Exception e) {
+            ReturnModelHelper.ExceptionResponse(rnModel, e.getClass().getName());
+        }
         return rnModel;
     }
 
@@ -430,7 +759,7 @@ public class NameSpacingController {
      * @param payload   payload map in JSON encoded
      * @return response package
      */
-    @RequestMapping(value = "/callback", produces = {"application/json", "application/xml"})
+    @RequestMapping(value = "/callback", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel TransshipCallback(@RequestParam(value = "signature", required = false) String signature,
@@ -487,7 +816,7 @@ public class NameSpacingController {
      * @param payload    payload map in JSON encoded
      * @return response package in JSON
      */
-    @RequestMapping(value = "/workitem/start", produces = {"application/json", "application/xml"})
+    @RequestMapping(value = "/workitem/start", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel TransshipStartWorkitem(@RequestParam(value = "signature", required = false) String signature,
@@ -505,7 +834,7 @@ public class NameSpacingController {
                 return ReturnModelHelper.MissingParametersResponse(missingParams);
             }
             // check authorization
-            if (!AuthorizationService.CheckWorkitemSignature(signature, workitemId)) {
+            if (!signature.equals(GlobalContext.INTERNAL_TOKEN) && !AuthorizationService.CheckWorkitemSignature(signature, workitemId)) {
                 return ReturnModelHelper.UnauthorizedResponse(signature);
             }
             // logic
@@ -533,7 +862,7 @@ public class NameSpacingController {
      * @param payload    payload map in JSON encoded
      * @return response package in JSON
      */
-    @RequestMapping(value = "/workitem/accept", produces = {"application/json", "application/xml"})
+    @RequestMapping(value = "/workitem/accept", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel TransshipAcceptWorkitem(@RequestParam(value = "signature", required = false) String signature,
@@ -551,7 +880,7 @@ public class NameSpacingController {
                 return ReturnModelHelper.MissingParametersResponse(missingParams);
             }
             // check authorization
-            if (!AuthorizationService.CheckWorkitemSignature(signature, workitemId)) {
+            if (!signature.equals(GlobalContext.INTERNAL_TOKEN) && !AuthorizationService.CheckWorkitemSignature(signature, workitemId)) {
                 return ReturnModelHelper.UnauthorizedResponse(signature);
             }
             // logic
@@ -579,7 +908,7 @@ public class NameSpacingController {
      * @param payload    payload map in JSON encoded
      * @return response package in JSON
      */
-    @RequestMapping(value = "/workitem/acceptStart", produces = {"application/json", "application/xml"})
+    @RequestMapping(value = "/workitem/acceptStart", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel TransshipAcceptAndStartWorkitem(@RequestParam(value = "signature", required = false) String signature,
@@ -597,7 +926,7 @@ public class NameSpacingController {
                 return ReturnModelHelper.MissingParametersResponse(missingParams);
             }
             // check authorization
-            if (!AuthorizationService.CheckWorkitemSignature(signature, workitemId)) {
+            if (!signature.equals(GlobalContext.INTERNAL_TOKEN) && !AuthorizationService.CheckWorkitemSignature(signature, workitemId)) {
                 return ReturnModelHelper.UnauthorizedResponse(signature);
             }
             // logic
@@ -625,7 +954,7 @@ public class NameSpacingController {
      * @param payload    payload map in JSON encoded
      * @return response package in JSON
      */
-    @RequestMapping(value = "/workitem/complete", produces = {"application/json", "application/xml"})
+    @RequestMapping(value = "/workitem/complete", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel TransshipCompleteWorkitem(@RequestParam(value = "signature", required = false) String signature,
@@ -643,7 +972,7 @@ public class NameSpacingController {
                 return ReturnModelHelper.MissingParametersResponse(missingParams);
             }
             // check authorization
-            if (!AuthorizationService.CheckWorkitemSignature(signature, workitemId)) {
+            if (!signature.equals(GlobalContext.INTERNAL_TOKEN) && !AuthorizationService.CheckWorkitemSignature(signature, workitemId)) {
                 return ReturnModelHelper.UnauthorizedResponse(signature);
             }
             // logic
@@ -671,7 +1000,7 @@ public class NameSpacingController {
      * @param payload    payload map in JSON encoded
      * @return response package in JSON
      */
-    @RequestMapping(value = "/workitem/suspend", produces = {"application/json", "application/xml"})
+    @RequestMapping(value = "/workitem/suspend", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel TransshipSuspendWorkitem(@RequestParam(value = "signature", required = false) String signature,
@@ -689,7 +1018,7 @@ public class NameSpacingController {
                 return ReturnModelHelper.MissingParametersResponse(missingParams);
             }
             // check authorization
-            if (!AuthorizationService.CheckWorkitemSignature(signature, workitemId)) {
+            if (!signature.equals(GlobalContext.INTERNAL_TOKEN) && !AuthorizationService.CheckWorkitemSignature(signature, workitemId)) {
                 return ReturnModelHelper.UnauthorizedResponse(signature);
             }
             // logic
@@ -717,7 +1046,7 @@ public class NameSpacingController {
      * @param payload    payload map in JSON encoded
      * @return response package in JSON
      */
-    @RequestMapping(value = "/workitem/unsuspend", produces = {"application/json", "application/xml"})
+    @RequestMapping(value = "/workitem/unsuspend", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel TransshipUnsuspendWorkitem(@RequestParam(value = "signature", required = false) String signature,
@@ -735,7 +1064,7 @@ public class NameSpacingController {
                 return ReturnModelHelper.MissingParametersResponse(missingParams);
             }
             // check authorization
-            if (!AuthorizationService.CheckWorkitemSignature(signature, workitemId)) {
+            if (!signature.equals(GlobalContext.INTERNAL_TOKEN) && !AuthorizationService.CheckWorkitemSignature(signature, workitemId)) {
                 return ReturnModelHelper.UnauthorizedResponse(signature);
             }
             // logic
@@ -763,7 +1092,7 @@ public class NameSpacingController {
      * @param payload    payload map in JSON encoded
      * @return response package in JSON
      */
-    @RequestMapping(value = "/workitem/skip", produces = {"application/json", "application/xml"})
+    @RequestMapping(value = "/workitem/skip", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel TransshipSkipWorkitem(@RequestParam(value = "signature", required = false) String signature,
@@ -781,7 +1110,7 @@ public class NameSpacingController {
                 return ReturnModelHelper.MissingParametersResponse(missingParams);
             }
             // check authorization
-            if (!AuthorizationService.CheckWorkitemSignature(signature, workitemId)) {
+            if (!signature.equals(GlobalContext.INTERNAL_TOKEN) && !AuthorizationService.CheckWorkitemSignature(signature, workitemId)) {
                 return ReturnModelHelper.UnauthorizedResponse(signature);
             }
             // logic
@@ -809,7 +1138,7 @@ public class NameSpacingController {
      * @param payload    payload map in JSON encoded
      * @return response package in JSON
      */
-    @RequestMapping(value = "/workitem/reallocate", produces = {"application/json", "application/xml"})
+    @RequestMapping(value = "/workitem/reallocate", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel TransshipReallocateWorkitem(@RequestParam(value = "signature", required = false) String signature,
@@ -827,7 +1156,7 @@ public class NameSpacingController {
                 return ReturnModelHelper.MissingParametersResponse(missingParams);
             }
             // check authorization
-            if (!AuthorizationService.CheckWorkitemSignature(signature, workitemId)) {
+            if (!signature.equals(GlobalContext.INTERNAL_TOKEN) && !AuthorizationService.CheckWorkitemSignature(signature, workitemId)) {
                 return ReturnModelHelper.UnauthorizedResponse(signature);
             }
             // logic
@@ -855,7 +1184,7 @@ public class NameSpacingController {
      * @param payload    payload map in JSON encoded
      * @return response package in JSON
      */
-    @RequestMapping(value = "/workitem/deallocate", produces = {"application/json", "application/xml"})
+    @RequestMapping(value = "/workitem/deallocate", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel TransshipDeallocateWorkitem(@RequestParam(value = "signature", required = false) String signature,
@@ -873,7 +1202,7 @@ public class NameSpacingController {
                 return ReturnModelHelper.MissingParametersResponse(missingParams);
             }
             // check authorization
-            if (!AuthorizationService.CheckWorkitemSignature(signature, workitemId)) {
+            if (!signature.equals(GlobalContext.INTERNAL_TOKEN) && !AuthorizationService.CheckWorkitemSignature(signature, workitemId)) {
                 return ReturnModelHelper.UnauthorizedResponse(signature);
             }
             // logic
@@ -901,7 +1230,7 @@ public class NameSpacingController {
      * @param type      queue type name
      * @return response package
      */
-    @RequestMapping(value = "/queue/get", produces = {"application/json", "application/xml"})
+    @RequestMapping(value = "/queue/get", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel TransshipGetWorkQueue(@RequestParam(value = "signature", required = false) String signature,
@@ -948,7 +1277,7 @@ public class NameSpacingController {
      * @param type         queue type name
      * @return response package
      */
-    @RequestMapping(value = "/queue/getlist", produces = {"application/json", "application/xml"})
+    @RequestMapping(value = "/queue/getlist", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel TransshipGetWorkQueueList(@RequestParam(value = "signature", required = false) String signature,
@@ -993,7 +1322,7 @@ public class NameSpacingController {
      * @param rtid      process rtid
      * @return response package
      */
-    @RequestMapping(value = "/workitem/getAll", produces = {"application/json", "application/xml"})
+    @RequestMapping(value = "/workitem/getAll", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel TransshipGetAllWorkitems(@RequestParam(value = "signature", required = false) String signature,
@@ -1025,7 +1354,145 @@ public class NameSpacingController {
     }
 
     /**
+     * Get workitems in a user-friendly package by RTID.
+     *
+     * @param token  auth token
+     * @param domain domain name
+     * @return response package
+     */
+    @RequestMapping(value = "/workitem/getAllForDomain", produces = {"application/json"})
+    @ResponseBody
+    @Transactional
+    public ReturnModel TransshipGetAllWorkitemsForDomain(@RequestParam(value = "token", required = false) String token,
+                                                         @RequestParam(value = "domain", required = false) String domain) {
+        ReturnModel rnModel = new ReturnModel();
+        try {
+            // miss params
+            List<String> missingParams = new ArrayList<>();
+            if (token == null) missingParams.add("token");
+            if (domain == null) missingParams.add("domain");
+            if (missingParams.size() > 0) {
+                return ReturnModelHelper.MissingParametersResponse(missingParams);
+            }
+            // check authorization, admin only
+            if ((AuthorizationService.CheckValidLevel(token) < 1 &&
+                    AuthTokenManager.GetDomain(token).equals(domain)) &&
+                    !token.equals(GlobalContext.INTERNAL_TOKEN)) {
+                return ReturnModelHelper.UnauthorizedResponse(token);
+            }
+            // logic
+            HashMap<String, String> args = new HashMap<>();
+            args.put("domain", domain);
+            NameServiceTransaction t = TransactionCreator.Create(TransactionType.Namespacing, "transshipGetAllWorkitemsForDomain", args);
+            String jsonifyResult = (String) NameSpacingController.scheduler.ScheduleSync(t);
+            // return
+            ReturnModelHelper.StandardResponse(rnModel, StatusCode.OK, jsonifyResult);
+        } catch (Exception e) {
+            ReturnModelHelper.ExceptionResponse(rnModel, e.getClass().getName());
+        }
+        return rnModel;
+    }
+
+    /**
+     * Get workitems in a user-friendly package by RTID.
+     *
+     * @param token    auth token
+     * @param workerId participant worker global id
+     * @return response package
+     */
+    @RequestMapping(value = "/workitem/getAllActiveForParticipant", produces = {"application/json"})
+    @ResponseBody
+    @Transactional
+    public ReturnModel TransshipGetAllActiveForParticipant(@RequestParam(value = "token", required = false) String token,
+                                                           @RequestParam(value = "workerId", required = false) String workerId) {
+        ReturnModel rnModel = new ReturnModel();
+        try {
+            // miss params
+            List<String> missingParams = new ArrayList<>();
+            if (token == null) missingParams.add("token");
+            if (workerId == null) missingParams.add("workerId");
+            if (missingParams.size() > 0) {
+                return ReturnModelHelper.MissingParametersResponse(missingParams);
+            }
+            // check authorization
+            if (AuthorizationService.CheckValidLevel(token) < 0 && !token.equals(GlobalContext.INTERNAL_TOKEN)) {
+                return ReturnModelHelper.UnauthorizedResponse(token);
+            }
+            // logic
+            HashMap<String, String> args = new HashMap<>();
+            args.put("workerId", workerId);
+            NameServiceTransaction t = TransactionCreator.Create(TransactionType.Namespacing, "transshipGetAllActiveForParticipant", args);
+            String jsonifyResult = (String) NameSpacingController.scheduler.ScheduleSync(t);
+            // return
+            ReturnModelHelper.StandardResponse(rnModel, StatusCode.OK, jsonifyResult);
+        } catch (Exception e) {
+            ReturnModelHelper.ExceptionResponse(rnModel, e.getClass().getName());
+        }
+        return rnModel;
+    }
+
+    /**
+     * Get workitems in a user-friendly package by Participant worker id.
+     *
+     * @param token auth token
+     * @param wid   workitem id
+     * @return response package
+     */
+    @RequestMapping(value = "/workitem/get", produces = {"application/json"})
+    @ResponseBody
+    @Transactional
+    public ReturnModel TransshipGetWorkitem(@RequestParam(value = "token", required = false) String token,
+                                            @RequestParam(value = "wid", required = false) String wid) {
+        ReturnModel rnModel = new ReturnModel();
+        try {
+            // miss params
+            List<String> missingParams = new ArrayList<>();
+            if (token == null) missingParams.add("token");
+            if (wid == null) missingParams.add("wid");
+            if (missingParams.size() > 0) {
+                return ReturnModelHelper.MissingParametersResponse(missingParams);
+            }
+            // check authorization
+            if (AuthorizationService.CheckValidLevel(token) < 0 && !token.equals(GlobalContext.INTERNAL_TOKEN)) {
+                return ReturnModelHelper.UnauthorizedResponse(token);
+            }
+            // logic
+            HashMap<String, String> args = new HashMap<>();
+            args.put("wid", wid);
+            NameServiceTransaction t = TransactionCreator.Create(TransactionType.Namespacing, "transshipGetWorkitem", args);
+            String jsonifyResult = (String) NameSpacingController.scheduler.ScheduleSync(t);
+            // return
+            ReturnModelHelper.StandardResponse(rnModel, StatusCode.OK, jsonifyResult);
+        } catch (Exception e) {
+            ReturnModelHelper.ExceptionResponse(rnModel, e.getClass().getName());
+        }
+        return rnModel;
+    }
+
+    /**
      * Transaction scheduler.
      */
     private static NSScheduler scheduler = NSScheduler.GetInstance();
+    
+    public static Set<String> rtids = new HashSet<>();
+
+    @RequestMapping(value = "/getRtids", produces = {"application/json"}, method = RequestMethod.GET)
+    @ResponseBody
+    public List<String> GetRtids() {
+    		List<String> rtidList = new ArrayList<>();
+    		for (String rtid : rtids) {
+    			rtidList.add(rtid);
+    		}
+    		return rtidList;
+    }
+    
+    /**
+     * Health Check
+     * @return 200
+     */
+    @RequestMapping(value = "/healthcheck", produces = {"application/json"}, method = RequestMethod.GET)
+    @ResponseBody
+    public int HealthCheck() {
+        return 200;
+    }
 }

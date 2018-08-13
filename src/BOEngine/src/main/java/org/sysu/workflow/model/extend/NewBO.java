@@ -12,11 +12,11 @@ import org.sysu.workflow.instanceTree.InstanceManager;
 import org.sysu.workflow.instanceTree.RTreeNode;
 import org.sysu.workflow.instanceTree.RInstanceTree;
 import org.sysu.workflow.env.SimpleErrorReporter;
-import org.sysu.workflow.io.SCXMLReader;
+import org.sysu.workflow.io.BOXMLReader;
 import org.sysu.workflow.*;
 import org.sysu.workflow.model.*;
-import org.sysu.workflow.restful.entity.RenBoEntity;
-import org.sysu.workflow.restful.service.LaunchProcessService;
+import org.sysu.workflow.entity.RenBoEntity;
+import org.sysu.workflow.stateless.RuntimeManagementService;
 import org.sysu.workflow.utility.HibernateUtil;
 import org.sysu.workflow.utility.LogUtil;
 import org.sysu.workflow.utility.SerializationUtil;
@@ -149,7 +149,7 @@ public class NewBO extends NamelistHolder implements PathResolverHolder {
 
             SCXML scxml = null;
 
-            SCXMLExecutionContext currentExecutionContext = (SCXMLExecutionContext) exctx.getInternalIOProcessor();
+            BOXMLExecutionContext currentExecutionContext = (BOXMLExecutionContext) exctx.getInternalIOProcessor();
             String boName = getSrc().split("\\.")[0];
 
             //read BO from database
@@ -176,7 +176,7 @@ public class NewBO extends NamelistHolder implements PathResolverHolder {
                         transaction.rollback();
                     }
                     LogUtil.Log("When read bo by rtid, exception occurred, " + e.toString() + ", service rollback",
-                            LaunchProcessService.class.getName(), LogLevelType.ERROR, currentExecutionContext.Rtid);
+                            RuntimeManagementService.class.getName(), LogLevelType.ERROR, currentExecutionContext.Rtid);
                 } finally {
                     HibernateUtil.CloseLocalSession();
                 }
@@ -195,7 +195,7 @@ public class NewBO extends NamelistHolder implements PathResolverHolder {
                     url = this.getClass().getClassLoader().getResource(getSrc());
                 }
                 try {
-                    scxml = SCXMLReader.read(url);
+                    scxml = BOXMLReader.read(url);
                 } catch (Exception e) {
                     System.out.println("couldn't find :" + getSrc());
                     e.printStackTrace();
@@ -209,7 +209,7 @@ public class NewBO extends NamelistHolder implements PathResolverHolder {
             Context tmpCtx = evaluator.newContext(ctx);
             int instanceNum = (int) evaluator.eval(ctx, this.instancesExpr);
             for (int i = 0; i < instanceNum; i++) {
-                SCXMLExecutor executor = new SCXMLExecutor(evaluator, new MultiStateMachineDispatcher(), new SimpleErrorReporter(), null, currentExecutionContext.RootNodeId);
+                BOXMLExecutor executor = new BOXMLExecutor(evaluator, new MultiStateMachineDispatcher(), new SimpleErrorReporter(), null, currentExecutionContext.RootNodeId);
                 executor.setRtid(currentExecutionContext.Rtid);
                 executor.setPid(currentExecutionContext.Pid);
                 executor.setStateMachine(scxml);
@@ -244,13 +244,13 @@ public class NewBO extends NamelistHolder implements PathResolverHolder {
                     tmpCtx.setLocal("_instanceIndex", i);
                     executor.setNotifiableId(evaluator.eval(tmpCtx, this.idExpr).toString());
                 }
+                // maintain the relation of this sub state machine on the instance tree
+                RTreeNode subNode = new RTreeNode(boName, executor.NodeId, executor.getExctx(), curNode);
+                curNode.AddChild(subNode);
                 // start sub state machine
                 executor.setRootContext(rootContext);
                 executor.setExecutorIndex(iTree.Root.getExect().getSCXMLExecutor().getExecutorIndex());
                 executor.go();
-                // maintain the relation of this sub state machine on the instance tree
-                RTreeNode subNode = new RTreeNode(boName, executor.NodeId, executor.getExctx(), curNode);
-                curNode.AddChild(subNode);
             }
         } catch (Exception e) {
             e.printStackTrace();

@@ -5,7 +5,7 @@ import org.sysu.renCommon.enums.LogLevelType;
 import org.sysu.renCommon.logging.LogMessagePackage;
 import org.sysu.renCommon.utility.TimestampUtil;
 import org.sysu.workflow.GlobalContext;
-import org.sysu.workflow.restful.entity.RenLogEntity;
+import org.sysu.workflow.entity.RenLogEntity;
 
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -109,6 +109,7 @@ public final class LogUtil {
                 rnle.setLevel(lmp.Level.name());
                 rnle.setMessage(lmp.Message);
                 rnle.setTimestamp(lmp.Timestamp);
+                rnle.setRtid(lmp.Rtid);
                 session.save(rnle);
             }
             session.flush();

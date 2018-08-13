@@ -34,7 +34,7 @@ public class WorkitemController {
      * @param payload    payload in JSON encoded string
      * @return response package in JSON
      */
-    @RequestMapping(value = "/start", produces = {"application/json", "application/xml"})
+    @RequestMapping(value = "/start", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel StartWorkitem(@RequestParam(value = "workerId", required = false) String workerId,
@@ -76,7 +76,7 @@ public class WorkitemController {
      * @param payload    payload in JSON encoded string
      * @return response package in JSON
      */
-    @RequestMapping(value = "/accept", produces = {"application/json", "application/xml"})
+    @RequestMapping(value = "/accept", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel AcceptWorkitem(@RequestParam(value = "workerId", required = false) String workerId,
@@ -119,7 +119,7 @@ public class WorkitemController {
      * @param payload    payload in JSON encoded string
      * @return response package in JSON
      */
-    @RequestMapping(value = "/acceptStart", produces = {"application/json", "application/xml"})
+    @RequestMapping(value = "/acceptStart", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel AcceptAndStartWorkitem(@RequestParam(value = "workerId", required = false) String workerId,
@@ -162,7 +162,7 @@ public class WorkitemController {
      * @param payload    payload in JSON encoded string
      * @return response package in JSON
      */
-    @RequestMapping(value = "/complete", produces = {"application/json", "application/xml"})
+    @RequestMapping(value = "/complete", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel CompleteWorkitem(@RequestParam(value = "workerId", required = false) String workerId,
@@ -205,7 +205,7 @@ public class WorkitemController {
      * @param payload    payload in JSON encoded string
      * @return response package in JSON
      */
-    @RequestMapping(value = "/suspend", produces = {"application/json", "application/xml"})
+    @RequestMapping(value = "/suspend", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel SuspendWorkitem(@RequestParam(value = "workerId", required = false) String workerId,
@@ -248,7 +248,7 @@ public class WorkitemController {
      * @param payload    payload in JSON encoded string
      * @return response package in JSON
      */
-    @RequestMapping(value = "/unsuspend", produces = {"application/json", "application/xml"})
+    @RequestMapping(value = "/unsuspend", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel UnsuspendWorkitem(@RequestParam(value = "workerId", required = false) String workerId,
@@ -291,7 +291,7 @@ public class WorkitemController {
      * @param payload    payload in JSON encoded string
      * @return response package in JSON
      */
-    @RequestMapping(value = "/skip", produces = {"application/json", "application/xml"})
+    @RequestMapping(value = "/skip", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel SkipWorkitem(@RequestParam(value = "workerId", required = false) String workerId,
@@ -334,7 +334,7 @@ public class WorkitemController {
      * @param payload    payload in JSON encoded string
      * @return response package in JSON
      */
-    @RequestMapping(value = "/reallocate", produces = {"application/json", "application/xml"})
+    @RequestMapping(value = "/reallocate", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel ReallocateWorkitem(@RequestParam(value = "workerId", required = false) String workerId,
@@ -377,7 +377,7 @@ public class WorkitemController {
      * @param payload    payload in JSON encoded string
      * @return response package in JSON
      */
-    @RequestMapping(value = "/deallocate", produces = {"application/json", "application/xml"})
+    @RequestMapping(value = "/deallocate", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel DeallocateWorkitem(@RequestParam(value = "workerId", required = false) String workerId,
@@ -418,7 +418,7 @@ public class WorkitemController {
      * @param rtid process rtid
      * @return response package in JSON
      */
-    @RequestMapping(value = "/getAll", produces = {"application/json", "application/xml"})
+    @RequestMapping(value = "/getAll", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel GetAll(@RequestParam(value = "rtid", required = false) String rtid) {
@@ -435,6 +435,102 @@ public class WorkitemController {
             args.put("rtid", rtid);
             ResourcingContext rCtx = ResourcingContext.GetContext(null, rtid,
                     RServiceType.GetAllWorkitemsByRTID, args);
+            String jsonifyResult = RScheduler.GetInstance().ScheduleSync(rCtx);
+            // return
+            ReturnModelHelper.StandardResponse(rnModel, StatusCode.OK, jsonifyResult);
+        } catch (Exception e) {
+            ReturnModelHelper.ExceptionResponse(rnModel, e.getClass().getName());
+        }
+        return rnModel;
+    }
+
+    /**
+     * Get all workitems by rtid.
+     *
+     * @param domain domain name
+     * @return response package in JSON
+     */
+    @RequestMapping(value = "/getAllForDomain", produces = {"application/json"})
+    @ResponseBody
+    @Transactional
+    public ReturnModel GetAllForDomain(@RequestParam(value = "domain", required = false) String domain) {
+        ReturnModel rnModel = new ReturnModel();
+        try {
+            // miss params
+            List<String> missingParams = new ArrayList<>();
+            if (domain == null) missingParams.add("domain");
+            if (missingParams.size() > 0) {
+                return ReturnModelHelper.MissingParametersResponse(missingParams);
+            }
+            // logic
+            Hashtable<String, Object> args = new Hashtable<>();
+            args.put("domain", domain);
+            ResourcingContext rCtx = ResourcingContext.GetContext(null, "",
+                    RServiceType.GetAllWorkitemsByDomain, args);
+            String jsonifyResult = RScheduler.GetInstance().ScheduleSync(rCtx);
+            // return
+            ReturnModelHelper.StandardResponse(rnModel, StatusCode.OK, jsonifyResult);
+        } catch (Exception e) {
+            ReturnModelHelper.ExceptionResponse(rnModel, e.getClass().getName());
+        }
+        return rnModel;
+    }
+
+    /**
+     * Get all workitems by rtid.
+     *
+     * @param workerId participant worker global id
+     * @return response package in JSON
+     */
+    @RequestMapping(value = "/getAllForParticipant", produces = {"application/json"})
+    @ResponseBody
+    @Transactional
+    public ReturnModel GetAllForParticipant(@RequestParam(value = "workerId", required = false) String workerId) {
+        ReturnModel rnModel = new ReturnModel();
+        try {
+            // miss params
+            List<String> missingParams = new ArrayList<>();
+            if (workerId == null) missingParams.add("workerId");
+            if (missingParams.size() > 0) {
+                return ReturnModelHelper.MissingParametersResponse(missingParams);
+            }
+            // logic
+            Hashtable<String, Object> args = new Hashtable<>();
+            args.put("workerId", workerId);
+            ResourcingContext rCtx = ResourcingContext.GetContext(null, "",
+                    RServiceType.GetAllWorkitemsByParticipant, args);
+            String jsonifyResult = RScheduler.GetInstance().ScheduleSync(rCtx);
+            // return
+            ReturnModelHelper.StandardResponse(rnModel, StatusCode.OK, jsonifyResult);
+        } catch (Exception e) {
+            ReturnModelHelper.ExceptionResponse(rnModel, e.getClass().getName());
+        }
+        return rnModel;
+    }
+
+    /**
+     * Get a workitem.
+     *
+     * @param wid workitem id
+     * @return response package in JSON
+     */
+    @RequestMapping(value = "/get", produces = {"application/json"})
+    @ResponseBody
+    @Transactional
+    public ReturnModel GetByWid(@RequestParam(value = "wid", required = false) String wid) {
+        ReturnModel rnModel = new ReturnModel();
+        try {
+            // miss params
+            List<String> missingParams = new ArrayList<>();
+            if (wid == null) missingParams.add("wid");
+            if (missingParams.size() > 0) {
+                return ReturnModelHelper.MissingParametersResponse(missingParams);
+            }
+            // logic
+            Hashtable<String, Object> args = new Hashtable<>();
+            args.put("wid", wid);
+            ResourcingContext rCtx = ResourcingContext.GetContext(null, "",
+                    RServiceType.GetByWid, args);
             String jsonifyResult = RScheduler.GetInstance().ScheduleSync(rCtx);
             // return
             ReturnModelHelper.StandardResponse(rnModel, StatusCode.OK, jsonifyResult);

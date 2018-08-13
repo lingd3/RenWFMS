@@ -11,6 +11,7 @@ import org.sysu.renResourcing.GlobalContext;
 import org.sysu.renCommon.enums.*;
 import org.sysu.renResourcing.consistency.ContextLockManager;
 import org.sysu.renResourcing.context.*;
+import org.sysu.renResourcing.context.steady.RenProcessEntity;
 import org.sysu.renResourcing.context.steady.RenRsparticipantEntity;
 import org.sysu.renResourcing.context.steady.RenRuntimerecordEntity;
 import org.sysu.renResourcing.context.steady.RenWorkitemEntity;
@@ -93,6 +94,9 @@ public class InterfaceB {
                 // put workitem to the chosen participant allocated queue
                 WorkQueueContainer container = WorkQueueContainer.GetContext(chosenOne.getWorkerId());
                 container.AddToQueue(workitem, WorkQueueType.ALLOCATED);
+                // change workitem status
+                workitem.getEntity().setFiringTime(TimestampUtil.GetCurrentTimestamp());
+                InterfaceB.WorkitemChanged(workitem, WorkitemStatusType.Fired, WorkitemResourcingStatusType.Allocated, null);
                 // notify if agent
                 if (chosenOne.getWorkerType() == WorkerType.Agent) {
                     AgentNotifyPlugin allocateAnp = new AgentNotifyPlugin();
@@ -100,9 +104,6 @@ public class InterfaceB {
                     allocateAnp.AddNotification(chosenOne, allocateNotifyMap, ctx.getRtid());
                     AsyncPluginRunner.AsyncRun(allocateAnp);
                 }
-                // change workitem status
-                workitem.getEntity().setFiringTime(TimestampUtil.GetCurrentTimestamp());
-                InterfaceB.WorkitemChanged(workitem, WorkitemStatusType.Fired, WorkitemResourcingStatusType.Allocated, null);
                 break;
             case Offer:
                 // create a filter interaction
@@ -123,13 +124,14 @@ public class InterfaceB {
                         offerAnp.AddNotification(oneInSet, offerNotifyMap, ctx.getRtid());
                     }
                 }
-                if (offerAnp.Count(ctx.getRtid()) > 0) {
-                    AsyncPluginRunner.AsyncRun(offerAnp);
-                }
                 // change workitem status
                 workitem.getEntity().setFiringTime(TimestampUtil.GetCurrentTimestamp());
                 InterfaceB.WorkitemChanged(workitem, WorkitemStatusType.Fired, WorkitemResourcingStatusType.Offered, null);
-                break;
+                // do notify
+                if (offerAnp.Count(ctx.getRtid()) > 0) {
+                    AsyncPluginRunner.AsyncRun(offerAnp);
+                }
+               break;
             case AutoAllocateIfOfferFailed:
                 // todo not implementation
                 break;
@@ -165,6 +167,8 @@ public class InterfaceB {
                     }
                 }
             }
+            RenProcessEntity processEntity = session.get(RenProcessEntity.class, rre.getProcessId());
+            processEntity.setSuccessCount(processEntity.getSuccessCount() + 1);
             transaction.commit();
         } catch (Exception ex) {
             transaction.rollback();
@@ -189,6 +193,8 @@ public class InterfaceB {
         WorkQueueContext.RemoveFromAllQueue(workitem);
         // if internal call, means accept and start
         if (initType == InitializationByType.SYSTEM_INITIATED) {
+            // write an allocated event without notification
+            InterfaceB.WorkitemChanged(workitem, WorkitemStatusType.Fired, WorkitemResourcingStatusType.Allocated, payload, false);
             boolean result = InterfaceB.StartWorkitem(participant, workitem, payload);
             if (!result) {
                 InterfaceX.FailedRedirectToLauncherDomainPool(workitem, "AcceptOffered by System but failed to start");
@@ -451,7 +457,20 @@ public class InterfaceB {
      * @param toResourcingStatus destination resourcing status
      * @param payload            payload in JSON encoded string
      */
-    public static void WorkitemChanged(WorkitemContext workitem, WorkitemStatusType toStatus, WorkitemResourcingStatusType toResourcingStatus, String payload) {
+    private static void WorkitemChanged(WorkitemContext workitem, WorkitemStatusType toStatus, WorkitemResourcingStatusType toResourcingStatus, String payload) {
+        InterfaceB.WorkitemChanged(workitem, toStatus, toResourcingStatus, payload, true);
+    }
+
+    /**
+     * Change a workitem from one status to another status.
+     *
+     * @param workitem           workitem context
+     * @param toStatus           destination status
+     * @param toResourcingStatus destination resourcing status
+     * @param payload            payload in JSON encoded string
+     * @param notify             whether need to process callback and hook
+     */
+    private static void WorkitemChanged(WorkitemContext workitem, WorkitemStatusType toStatus, WorkitemResourcingStatusType toResourcingStatus, String payload, boolean notify) {
         // refresh changed to steady
         ContextLockManager.WriteLock(workitem.getClass(), workitem.getEntity().getWid());
         try {
@@ -466,12 +485,14 @@ public class InterfaceB {
             ContextLockManager.WriteUnLock(workitem.getClass(), workitem.getEntity().getWid());
         }
         // handle callbacks and hooks
-        try {
-            InterfaceA.HandleCallbackAndHook(toStatus, workitem, workitem.getTaskContext(), payload);
-        } catch (Exception ex) {
-            LogUtil.Log(String.format("Workitem(%s) status changed but failed to handle callbacks and hooks, %s", workitem.getEntity().getWid(), ex),
-                    InterfaceB.class.getName(), LogLevelType.ERROR, workitem.getEntity().getRtid());
-            InterfaceX.NotifyException(workitem);
+        if (notify) {
+            try {
+                InterfaceA.HandleCallbackAndHook(toStatus, workitem, workitem.getTaskContext(), payload);
+            } catch (Exception ex) {
+                LogUtil.Log(String.format("Workitem(%s) status changed but failed to handle callbacks and hooks, %s", workitem.getEntity().getWid(), ex),
+                        InterfaceB.class.getName(), LogLevelType.ERROR, workitem.getEntity().getRtid());
+                InterfaceX.NotifyException(workitem);
+            }
         }
     }
 }

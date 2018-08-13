@@ -36,6 +36,11 @@ public class InterfaceW {
         String workerId = (String) ctx.getArgs().get("workerId");
         String payload = (String) ctx.getArgs().get("payload");
         WorkitemContext workitem = WorkitemContext.GetContext(workitemId, ctx.getRtid());
+        if (!workitem.IsAtResourcingStatus(WorkitemResourcingStatusType.Offered)) {
+            LogUtil.Log(String.format("Try to accept workitem(%s) but not at Offered status", workitemId),
+                    InterfaceW.class.getName(), LogLevelType.ERROR, workitem.getEntity().getRtid());
+            return false;
+        }
         ParticipantContext participant = ParticipantContext.GetContext(ctx.getRtid(), workerId);
         if (workitem == null) {
             LogUtil.Log("Accept offer but workitem not exist, rstid: " + ctx.getRstid(),
@@ -64,6 +69,11 @@ public class InterfaceW {
         String workerId = (String) ctx.getArgs().get("workerId");
         String payload = (String) ctx.getArgs().get("payload");
         WorkitemContext workitem = WorkitemContext.GetContext(workitemId, ctx.getRtid());
+        if (!workitem.IsAtResourcingStatus(WorkitemResourcingStatusType.Allocated)) {
+            LogUtil.Log(String.format("Try to deallocate workitem(%s) but not at Allocated status", workitemId),
+                    InterfaceW.class.getName(), LogLevelType.ERROR, workitem.getEntity().getRtid());
+            return false;
+        }
         ParticipantContext participant = ParticipantContext.GetContext(ctx.getRtid(), workerId);
         if (workitem == null) {
             LogUtil.Log("Deallocate but workitem not exist, rstid: " + ctx.getRstid(),
@@ -92,6 +102,11 @@ public class InterfaceW {
         String workerId = (String) ctx.getArgs().get("workerId");
         String payload = (String) ctx.getArgs().get("payload");
         WorkitemContext workitem = WorkitemContext.GetContext(workitemId, ctx.getRtid());
+        if (!workitem.IsAtResourcingStatus(WorkitemResourcingStatusType.Allocated)) {
+            LogUtil.Log(String.format("Try to start workitem(%s) but not at Allocated status", workitemId),
+                    InterfaceW.class.getName(), LogLevelType.ERROR, workitem.getEntity().getRtid());
+            return false;
+        }
         ParticipantContext participant = ParticipantContext.GetContext(ctx.getRtid(), workerId);
         if (workitem == null) {
             LogUtil.Log("Start but workitem not exist, rstid: " + ctx.getRstid(),
@@ -120,6 +135,11 @@ public class InterfaceW {
         String workerId = (String) ctx.getArgs().get("workerId");
         String payload = (String) ctx.getArgs().get("payload");
         WorkitemContext workitem = WorkitemContext.GetContext(workitemId, ctx.getRtid());
+        if (!workitem.IsAtResourcingStatus(WorkitemResourcingStatusType.Started)) {
+            LogUtil.Log(String.format("Try to reallocate workitem(%s) but not at Started status", workitemId),
+                    InterfaceW.class.getName(), LogLevelType.ERROR, workitem.getEntity().getRtid());
+            return false;
+        }
         ParticipantContext participant = ParticipantContext.GetContext(ctx.getRtid(), workerId);
         if (workitem == null) {
             LogUtil.Log("Reallocate but workitem not exist, rstid: " + ctx.getRstid(),
@@ -148,6 +168,11 @@ public class InterfaceW {
         String workerId = (String) ctx.getArgs().get("workerId");
         String payload = (String) ctx.getArgs().get("payload");
         WorkitemContext workitem = WorkitemContext.GetContext(workitemId, ctx.getRtid());
+        if (!workitem.IsAtResourcingStatus(WorkitemResourcingStatusType.Offered)) {
+            LogUtil.Log(String.format("Try to accept and start workitem(%s) but not at Offered status", workitemId),
+                    InterfaceW.class.getName(), LogLevelType.ERROR, workitem.getEntity().getRtid());
+            return false;
+        }
         ParticipantContext participant = ParticipantContext.GetContext(ctx.getRtid(), workerId);
         if (workitem == null) {
             LogUtil.Log("Accept and start but workitem not exist, rstid: " + ctx.getRstid(),
@@ -176,6 +201,11 @@ public class InterfaceW {
         String workerId = (String) ctx.getArgs().get("workerId");
         String payload = (String) ctx.getArgs().get("payload");
         WorkitemContext workitem = WorkitemContext.GetContext(workitemId, ctx.getRtid());
+        if (!workitem.IsAtResourcingStatus(WorkitemResourcingStatusType.Allocated)) {
+            LogUtil.Log(String.format("Try to skip workitem(%s) but not at Allocated status", workitemId),
+                    InterfaceW.class.getName(), LogLevelType.ERROR, workitem.getEntity().getRtid());
+            return false;
+        }
         ParticipantContext participant = ParticipantContext.GetContext(ctx.getRtid(), workerId);
         if (workitem == null) {
             LogUtil.Log("Skip but workitem not exist, rstid: " + ctx.getRstid(),
@@ -204,6 +234,11 @@ public class InterfaceW {
         String workerId = (String) ctx.getArgs().get("workerId");
         String payload = (String) ctx.getArgs().get("payload");
         WorkitemContext workitem = WorkitemContext.GetContext(workitemId, ctx.getRtid());
+        if (!workitem.IsAtResourcingStatus(WorkitemResourcingStatusType.Started)) {
+            LogUtil.Log(String.format("Try to suspend workitem(%s) but not at Started status", workitemId),
+                    InterfaceW.class.getName(), LogLevelType.ERROR, workitem.getEntity().getRtid());
+            return false;
+        }
         ParticipantContext participant = ParticipantContext.GetContext(ctx.getRtid(), workerId);
         if (workitem == null) {
             LogUtil.Log("Suspend but workitem not exist, rstid: " + ctx.getRstid(),
@@ -232,6 +267,11 @@ public class InterfaceW {
         String workerId = (String) ctx.getArgs().get("workerId");
         String payload = (String) ctx.getArgs().get("payload");
         WorkitemContext workitem = WorkitemContext.GetContext(workitemId, ctx.getRtid());
+        if (!workitem.IsAtResourcingStatus(WorkitemResourcingStatusType.Suspended)) {
+            LogUtil.Log(String.format("Try to unsuspend workitem(%s) but not at Suspended status", workitemId),
+                    InterfaceW.class.getName(), LogLevelType.ERROR, workitem.getEntity().getRtid());
+            return false;
+        }
         ParticipantContext participant = ParticipantContext.GetContext(ctx.getRtid(), workerId);
         if (workitem == null) {
             LogUtil.Log("Unsuspend but workitem not exist, rstid: " + ctx.getRstid(),
@@ -260,6 +300,11 @@ public class InterfaceW {
         String workerId = (String) ctx.getArgs().get("workerId");
         String payload = (String) ctx.getArgs().get("payload");
         WorkitemContext workitem = WorkitemContext.GetContext(workitemId, ctx.getRtid());
+        if (!workitem.IsAtResourcingStatus(WorkitemResourcingStatusType.Started)) {
+            LogUtil.Log(String.format("Try to complete workitem(%s) but not at Started status", workitemId),
+                    InterfaceW.class.getName(), LogLevelType.ERROR, workitem.getEntity().getRtid());
+            return false;
+        }
         ParticipantContext participant = ParticipantContext.GetContext(ctx.getRtid(), workerId);
         if (workitem == null) {
             LogUtil.Log("Accept offer but workitem not exist, rstid: " + ctx.getRstid(),
@@ -396,6 +441,51 @@ public class InterfaceW {
             return null;
         }
         return WorkitemContext.GenerateResponseWorkitems(workitemList, true);
+    }
+
+    /**
+     * Get all workitems belong to a domain in user-friendly package.
+     * @param ctx rs context
+     * @return List of Map of workitem data to return
+     */
+    public static ArrayList<HashMap<String, String>> GetAllWorkitemsInUserFriendlyForDomain(ResourcingContext ctx) {
+        String domain = (String) ctx.getArgs().get("domain");
+        ArrayList<WorkitemContext> workitemList = WorkitemContext.GetContextInDomain(domain);
+        if (workitemList == null) {
+            LogUtil.Log("Cannot get workitem for Domain: " + domain, InterfaceW.class.getName(),
+                    LogLevelType.ERROR, "");
+            return null;
+        }
+        return WorkitemContext.GenerateResponseWorkitems(workitemList, false);
+    }
+
+    /**
+     * Get all workitems belong to a participant in user-friendly package.
+     * @param ctx rs context
+     * @return List of Map of workitem data to return
+     */
+    public static ArrayList<HashMap<String, String>> GetAllWorkitemsInUserFriendlyForParticipant(ResourcingContext ctx) {
+        String workerId = (String) ctx.getArgs().get("workerId");
+        WorkQueueContainer container = WorkQueueContainer.GetContext(workerId);
+        Set<WorkitemContext> worklistedCtxList = container.GetWorklistedQueue().GetQueueAsSet();
+        ArrayList<WorkitemContext> wList = new ArrayList<>(worklistedCtxList);
+        return WorkitemContext.GenerateResponseWorkitems(wList, false);
+    }
+
+    /**
+     * Get a workitem in user-friendly package.
+     * @param ctx rs context
+     * @return List of Map of workitem data to return
+     */
+    public static HashMap<String, String> GetWorkitemInFriendly(ResourcingContext ctx) {
+        String wid = (String) ctx.getArgs().get("wid");
+        WorkitemContext workitem = WorkitemContext.GetContext(wid, "");
+        if (workitem == null) {
+            LogUtil.Log("Cannot get workitem for Wid: " + wid, InterfaceW.class.getName(),
+                    LogLevelType.ERROR, "");
+            return null;
+        }
+        return WorkitemContext.GenerateResponseWorkitem(workitem);
     }
 
     /**

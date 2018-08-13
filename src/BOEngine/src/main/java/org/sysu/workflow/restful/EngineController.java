@@ -6,8 +6,9 @@ package org.sysu.workflow.restful;
 
 import org.springframework.web.bind.annotation.*;
 import org.sysu.renCommon.enums.LogLevelType;
-import org.sysu.workflow.restful.service.InteractionService;
-import org.sysu.workflow.restful.service.LaunchProcessService;
+import org.sysu.workflow.stateless.InteractionService;
+import org.sysu.workflow.stateless.RuntimeManagementService;
+import org.sysu.workflow.stateless.SteadyStepService;
 import org.sysu.workflow.utility.LogUtil;
 import org.sysu.workflow.utility.SerializationUtil;
 import org.sysu.renCommon.dto.ReturnModel;
@@ -15,12 +16,13 @@ import org.sysu.renCommon.dto.StatusCode;
 
 import javax.transaction.Transactional;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 /**
- * Author: Ariana
+ * Author: Rinkako
  * Date  : 2018/1/20
- * Usage : Handle requests from other modules.
+ * Usage : Handle requests passed to engine, like process launching or delegation.
  */
 @RestController
 @RequestMapping("/gateway")
@@ -31,7 +33,7 @@ public class EngineController {
      * @param rtid the runtime record of a process
      * @return response package
      */
-    @RequestMapping(value = "/launchProcess", produces = {"application/json", "application/xml"})
+    @RequestMapping(value = "/launchProcess", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel LaunchProcess(@RequestParam(value = "rtid", required = false) String rtid) {
@@ -44,7 +46,7 @@ public class EngineController {
                 return ReturnModelHelper.MissingParametersResponse(missingParams);
             }
             // logic
-            LaunchProcessService.LaunchProcess(rtid);
+            RuntimeManagementService.LaunchProcess(rtid);
             // return
             ReturnModelHelper.StandardResponse(rnModel, StatusCode.OK, "OK");
         } catch (Exception e) {
@@ -58,7 +60,7 @@ public class EngineController {
      * @param boidlist BOs to be serialized, separated by `,`
      * @return response package
      */
-    @RequestMapping(value = "/serializeBO", produces = {"application/json", "application/xml"})
+    @RequestMapping(value = "/serializeBO", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel SerializeBO(@RequestParam(value = "boidlist", required = false) String boidlist) {
@@ -71,7 +73,90 @@ public class EngineController {
                 return ReturnModelHelper.MissingParametersResponse(missingParams);
             }
             // logic
-            String jsonify = SerializationUtil.JsonSerialization(LaunchProcessService.SerializeBO(boidlist), "");
+            String jsonify = SerializationUtil.JsonSerialization(RuntimeManagementService.SerializeBO(boidlist), "");
+            // return
+            ReturnModelHelper.StandardResponse(rnModel, StatusCode.OK, jsonify);
+        } catch (Exception e) {
+            ReturnModelHelper.ExceptionResponse(rnModel, e.toString());
+        }
+        return rnModel;
+    }
+
+    /**
+     * Get a user-friendly descriptor of an instance tree.
+     * @param rtid process rtid
+     * @return response package
+     */
+    @RequestMapping(value = "/getSpanTree", produces = {"application/json"})
+    @ResponseBody
+    @Transactional
+    public ReturnModel GetSpanTreeByRTID(@RequestParam(value = "rtid", required = false) String rtid) {
+        ReturnModel rnModel = new ReturnModel();
+        try {
+            // miss params
+            ArrayList<String> missingParams = new ArrayList<String>();
+            if (rtid == null) missingParams.add("rtid");
+            if (missingParams.size() > 0) {
+                return ReturnModelHelper.MissingParametersResponse(missingParams);
+            }
+            // logic
+            String jsonify = RuntimeManagementService.GetSpanTreeDescriptor(rtid);
+            // return
+            ReturnModelHelper.StandardResponse(rnModel, StatusCode.OK, jsonify);
+        } catch (Exception e) {
+            ReturnModelHelper.ExceptionResponse(rnModel, e.toString());
+        }
+        return rnModel;
+    }
+
+    /**
+     * Resume a running process from steady binlog.
+     * @param rtid process rtid
+     * @return response package
+     */
+    @RequestMapping(value = "/resume", produces = {"application/json"})
+    @ResponseBody
+    @Transactional
+    public ReturnModel Resume(@RequestParam(value = "rtid", required = false) String rtid) {
+        ReturnModel rnModel = new ReturnModel();
+        try {
+            // miss params
+            ArrayList<String> missingParams = new ArrayList<String>();
+            if (rtid == null) missingParams.add("rtid");
+            if (missingParams.size() > 0) {
+                return ReturnModelHelper.MissingParametersResponse(missingParams);
+            }
+            // logic
+            String jsonify = SerializationUtil.JsonSerialization(SteadyStepService.ResumeSteady(rtid), rtid);
+            // return
+            ReturnModelHelper.StandardResponse(rnModel, StatusCode.OK, jsonify);
+        } catch (Exception e) {
+            ReturnModelHelper.ExceptionResponse(rnModel, e.toString());
+        }
+        return rnModel;
+    }
+
+    /**
+     * Resume a running process from steady binlog.
+     * @param rtidList process rtid in JSON list
+     * @return response package
+     */
+    @RequestMapping(value = "/resumeMany", produces = {"application/json"})
+    @ResponseBody
+    @Transactional
+    public ReturnModel ResumeMany(@RequestParam(value = "rtidList", required = false) String rtidList) {
+        ReturnModel rnModel = new ReturnModel();
+        try {
+            // miss params
+            ArrayList<String> missingParams = new ArrayList<String>();
+            if (rtidList == null) missingParams.add("rtidList");
+            if (missingParams.size() > 0) {
+                return ReturnModelHelper.MissingParametersResponse(missingParams);
+            }
+            // logic
+            HashMap<String, List> retMap = new HashMap<>();
+            retMap.put("failed", SteadyStepService.ResumeSteadyMany(rtidList));
+            String jsonify = SerializationUtil.JsonSerialization(retMap, "");
             // return
             ReturnModelHelper.StandardResponse(rnModel, StatusCode.OK, jsonify);
         } catch (Exception e) {
@@ -89,7 +174,7 @@ public class EngineController {
      * @param payload event send to engine
      * @return response package
      */
-    @RequestMapping(value = "/callback", produces = {"application/json", "application/xml"})
+    @RequestMapping(value = "/callback", produces = {"application/json"})
     @ResponseBody
     @Transactional
     public ReturnModel Callback(@RequestParam(value="rtid", required = false)String rtid,
@@ -126,6 +211,16 @@ public class EngineController {
             ReturnModelHelper.ExceptionResponse(rnModel, e.toString());
         }
         return rnModel;
+    }
+    
+    /**
+     * Health Check
+     * @return 200
+     */
+    @RequestMapping(value = "/healthcheck", produces = {"application/json"}, method = RequestMethod.GET)
+    @ResponseBody
+    public int HealthCheck() {
+        return 200;
     }
 
 }
